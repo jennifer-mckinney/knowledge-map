@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Organization Knowledge Network</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            min-width: 280px;
+        }
+
+        .search-container {
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .dropdown {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            background: white;
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dropdown:hover {
+            border-color: #667eea;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            text-align: center;
+            min-width: 160px;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #8898aa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        svg {
+            background: transparent;
+        }
+
+        .node {
+            stroke: rgba(255, 255, 255, 0.8);
+            stroke-width: 2;
+            cursor: pointer;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+            transition: all 0.3s ease;
+        }
+
+        .node:hover {
+            stroke-width: 3;
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.2));
+        }
+
+        .link {
+            stroke: rgba(255, 255, 255, 0.3);
+            stroke-width: 1.5;
+        }
+
+        .label {
+            font-size: 11px;
+            font-weight: 600;
+            fill: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .refresh-btn {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search files, projects, categories...">
+            </div>
+            <div class="control-row">
+                <select class="dropdown" id="clusterBy">
+                    <option value="category">By Category</option>
+                    <option value="project">By Project</option>
+                    <option value="type">By Type</option>
+                </select>
+                <select class="dropdown" id="layoutMode">
+                    <option value="organic">Organic</option>
+                    <option value="circular">Circular</option>
+                </select>
+            </div>
+            <button class="refresh-btn" onclick="refreshData()">Refresh Data</button>
+            <button class="reset-btn" onclick="resetView()">Reset View</button>
+        </div>
+
+        <div class="stats">
+            <span class="stat-number" id="totalFiles">1081</span>
+            <span class="stat-label">Files</span>
+            <div style="margin: 15px 0;"></div>
+            <span class="stat-number" id="totalProjects">26</span>
+            <span class="stat-label">Projects</span>
+            <div style="margin: 15px 0;"></div>
+            <span class="stat-number" id="totalCategories">7</span>
+            <span class="stat-label">Categories</span>
+        </div>
+
+        <svg id="visualization"></svg>
+    </div>
+
+    <script>
+        // Dynamic file data
+        function getCurrentData() {
+            return {
+                nodes: [
+                    {id: "docs", name: "iCloud Documents", category: "location", files: 799, size: 35, x: null, y: null},
+                    {id: "downloads", name: "Downloads", category: "location", files: 299, size: 30},
+                    {id: "automation", name: "_AUTOMATION", category: "system", files: 45, size: 22},
+                    {id: "workspace", name: "ClaudeOfficeSpace", category: "workspace", files: 12, size: 18},
+                    {id: "career", name: "Career Professional", category: "professional", files: 87, size: 24},
+                    {id: "education", name: "Education Coursework", category: "education", files: 124, size: 26},
+                    {id: "ai_research", name: "AI Research", category: "research", files: 156, size: 28},
+                    {id: "reports", name: "Reports Analysis", category: "analysis", files: 78, size: 22},
+                    {id: "technical", name: "Technical Development", category: "technical", files: 189, size: 30},
+                    {id: "admin", name: "Administrative", category: "admin", files: 65, size: 20},
+                    {id: "organized", name: "_ORGANIZED", category: "system", files: 253, size: 28},
+                    {id: "projects", name: "Projects By Topic", category: "projects", files: 186, size: 26},
+                    {id: "oxford", name: "Oxford AI Programme", category: "education", files: 45, size: 16},
+                    {id: "amazon", name: "Amazon Prep", category: "professional", files: 22, size: 14},
+                    {id: "deepfake", name: "Deepfake Research", category: "research", files: 32, size: 15},
+                    {id: "agentic", name: "Agentic AI Suite", category: "technical", files: 42, size: 17},
+                    {id: "dashboards", name: "Web Dashboards", category: "technical", files: 28, size: 14},
+                    {id: "nordstrom", name: "Nordstrom", category: "professional", files: 18, size: 12},
+                    {id: "tech_designs", name: "Technical Designs", category: "technical", files: 3, size: 10},
+                    {id: "artifacts", name: "Project Artifacts", category: "projects", files: 3, size: 10},
+                    {id: "knowledge", name: "Knowledge Management", category: "education", files: 3, size: 10},
+                    {id: "active_dev", name: "Active Development", category: "technical", files: 3, size: 10}
+                ],
+                links: [
+                    {source: "docs", target: "automation", strength: 0.8},
+                    {source: "docs", target: "career", strength: 0.8},
+                    {source: "docs", target: "education", strength: 0.8},
+                    {source: "docs", target: "ai_research", strength: 0.8},
+                    {source: "docs", target: "reports", strength: 0.8},
+                    {source: "docs", target: "technical", strength: 0.8},
+                    {source: "docs", target: "admin", strength: 0.8},
+                    {source: "downloads", target: "organized", strength: 0.8},
+                    {source: "organized", target: "projects", strength: 0.7},
+                    {source: "projects", target: "oxford", strength: 0.6},
+                    {source: "projects", target: "amazon", strength: 0.6},
+                    {source: "projects", target: "deepfake", strength: 0.6},
+                    {source: "projects", target: "agentic", strength: 0.6},
+                    {source: "projects", target: "nordstrom", strength: 0.6},
+                    {source: "automation", target: "workspace", strength: 0.8},
+                    {source: "workspace", target: "tech_designs", strength: 0.7},
+                    {source: "workspace", target: "artifacts", strength: 0.7},
+                    {source: "workspace", target: "knowledge", strength: 0.7},
+                    {source: "workspace", target: "active_dev", strength: 0.7},
+                    {source: "career", target: "amazon", strength: 0.4},
+                    {source: "education", target: "oxford", strength: 0.5},
+                    {source: "ai_research", target: "deepfake", strength: 0.5},
+                    {source: "technical", target: "agentic", strength: 0.4},
+                    {source: "technical", target: "dashboards", strength: 0.4}
+                ]
+            };
+        }
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#visualization")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.2, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        const color = d3.scaleOrdinal()
+            .domain(["location", "system", "workspace", "professional", "education", "research", "technical", "analysis", "admin", "projects"])
+            .range(["#6366f1", "#ec4899", "#8b5cf6", "#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#06b6d4", "#84cc16", "#a855f7"]);
+
+        let simulation, link, node, label;
+
+        function updateVisualization(data) {
+            g.selectAll("*").remove();
+
+            simulation = d3.forceSimulation(data.nodes)
+                .force("link", d3.forceLink(data.links).id(d => d.id).strength(d => d.strength * 0.5))
+                .force("charge", d3.forceManyBody().strength(-200))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(d => d.size + 5));
+
+            link = g.append("g")
+                .selectAll("line")
+                .data(data.links)
+                .enter().append("line")
+                .attr("class", "link");
+
+            node = g.append("g")
+                .selectAll("circle")
+                .data(data.nodes)
+                .enter().append("circle")
+                .attr("class", "node")
+                .attr("r", d => d.size)
+                .attr("fill", d => color(d.category))
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            label = g.append("g")
+                .selectAll("text")
+                .data(data.nodes)
+                .enter().append("text")
+                .attr("class", "label")
+                .text(d => d.name);
+
+            node.append("title")
+                .text(d => `${d.name}: ${d.files} files`);
+
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+
+                node
+                    .attr("cx", d => d.x)
+                    .attr("cy", d => d.y);
+
+                label
+                    .attr("x", d => d.x)
+                    .attr("y", d => d.y + 3);
+            });
+        }
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        function refreshData() {
+            const data = getCurrentData();
+            const totalFiles = data.nodes.reduce((sum, n) => sum + n.files, 0);
+            document.getElementById("totalFiles").textContent = totalFiles;
+            updateVisualization(data);
+        }
+
+        function resetView() {
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+            document.getElementById("searchInput").value = "";
+            if (node) node.style("opacity", 1);
+            if (label) label.style("opacity", 1);
+        }
+
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            const term = e.target.value.toLowerCase();
+            if (node) {
+                node.style("opacity", d => 
+                    d.name.toLowerCase().includes(term) ? 1 : 0.1
+                );
+            }
+            if (label) {
+                label.style("opacity", d => 
+                    d.name.toLowerCase().includes(term) ? 1 : 0.1
+                );
+            }
+        });
+
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>

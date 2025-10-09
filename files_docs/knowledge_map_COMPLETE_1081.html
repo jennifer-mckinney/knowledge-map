@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Knowledge Map - Complete File System</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #fafafa;
+}
+.controls {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.stats {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+svg {
+    background: #fafafa;
+}
+.node {
+    stroke: #fff;
+    stroke-width: 2px;
+    cursor: pointer;
+}
+.link {
+    stroke: #999;
+    stroke-opacity: 0.4;
+}
+.label {
+    font-size: 10px;
+    pointer-events: none;
+}
+</style>
+</head>
+<body>
+<div class="controls">
+    <h3>File Organization Map</h3>
+    <input type="text" id="search" placeholder="Search..." style="width: 200px; padding: 5px;">
+    <button onclick="resetView()">Reset View</button>
+</div>
+
+<div class="stats">
+    <div style="font-size: 24px; font-weight: bold;">1,081</div>
+    <div>Total Files</div>
+    <hr>
+    <div style="font-size: 18px; font-weight: bold;">799</div>
+    <div>iCloud Documents</div>
+    <div style="font-size: 18px; font-weight: bold;">299</div>
+    <div>Downloads</div>
+</div>
+
+<svg id="viz"></svg>
+
+<script>
+// Complete data structure with all folders
+const fileData = {
+    nodes: [
+        // Main locations
+        {id: "docs", name: "iCloud Documents", category: "location", files: 799, size: 40},
+        {id: "downloads", name: "Downloads", category: "location", files: 299, size: 35},
+        
+        // Document folders
+        {id: "automation", name: "_AUTOMATION", category: "system", files: 45, size: 25, parent: "docs"},
+        {id: "workspace", name: "ClaudeOfficeSpace", category: "workspace", files: 12, size: 20, parent: "automation"},
+        {id: "career", name: "01_Career_Professional", category: "professional", files: 87, size: 28, parent: "docs"},
+        {id: "education", name: "02_Education_Coursework", category: "education", files: 124, size: 30, parent: "docs"},
+        {id: "ai_research", name: "03_AI_Research", category: "research", files: 156, size: 32, parent: "docs"},
+        {id: "reports", name: "04_Reports_Analysis", category: "analysis", files: 78, size: 26, parent: "docs"},
+        {id: "technical", name: "05_Technical_Development", category: "technical", files: 189, size: 34, parent: "docs"},
+        {id: "admin", name: "06_Administrative", category: "admin", files: 65, size: 24, parent: "docs"},
+        {id: "course_mat", name: "Course_Materials", category: "education", files: 43, size: 22, parent: "docs"},
+        {id: "archive", name: "07_Archive", category: "archive", files: 32, size: 18, parent: "docs"},
+        {id: "personal", name: "Personal", category: "personal", files: 21, size: 16, parent: "docs"},
+        
+        // Downloads folders
+        {id: "organized", name: "_ORGANIZED", category: "system", files: 253, size: 30, parent: "downloads"},
+        {id: "projects", name: "Projects_By_Topic", category: "projects", files: 186, size: 28, parent: "organized"},
+        {id: "to_sort", name: "To_Sort", category: "pending", files: 46, size: 20, parent: "organized"},
+        
+        // Workspace subfolders
+        {id: "tech_designs", name: "Technical_Designs", category: "technical", files: 3, size: 12, parent: "workspace"},
+        {id: "artifacts", name: "Project_Artifacts", category: "projects", files: 3, size: 12, parent: "workspace"},
+        {id: "knowledge", name: "Knowledge_Management", category: "knowledge", files: 3, size: 12, parent: "workspace"},
+        {id: "active_dev", name: "Active_Development", category: "development", files: 3, size: 12, parent: "workspace"},
+        
+        // Project topics
+        {id: "oxford", name: "Oxford_AI_Programme", category: "education", files: 45, size: 22, parent: "projects"},
+        {id: "amazon", name: "Amazon_Prep", category: "professional", files: 22, size: 18, parent: "projects"},
+        {id: "nordstrom", name: "Nordstrom", category: "professional", files: 18, size: 16, parent: "projects"},
+        {id: "deepfake", name: "Deepfake_Research", category: "research", files: 32, size: 20, parent: "projects"},
+        {id: "agentic", name: "Agentic_AI_Suite", category: "technical", files: 42, size: 24, parent: "projects"},
+        {id: "dashboards", name: "Web_Dashboards", category: "technical", files: 28, size: 18, parent: "projects"}
+    ],
+    links: []
+};
+
+// Create links from parent relationships
+fileData.nodes.forEach(node => {
+    if (node.parent) {
+        fileData.links.push({
+            source: node.parent,
+            target: node.id,
+            strength: 0.8
+        });
+    }
+});
+
+// Add semantic relationships
+const semanticLinks = [
+    {source: "career", target: "amazon", strength: 0.5},
+    {source: "education", target: "oxford", strength: 0.6},
+    {source: "ai_research", target: "deepfake", strength: 0.7},
+    {source: "technical", target: "agentic", strength: 0.6},
+    {source: "technical", target: "dashboards", strength: 0.5},
+    {source: "education", target: "course_mat", strength: 0.8},
+    {source: "workspace", target: "technical", strength: 0.4},
+    {source: "automation", target: "technical", strength: 0.5}
+];
+
+fileData.links.push(...semanticLinks);
+
+// Color scheme
+const colors = {
+    location: "#4285F4",
+    system: "#DB4437",
+    workspace: "#F4B400",
+    professional: "#0F9D58",
+    education: "#AB47BC",
+    research: "#00ACC1",
+    technical: "#FF7043",
+    analysis: "#9E9D24",
+    admin: "#8D6E63",
+    archive: "#78909C",
+    personal: "#EC407A",
+    projects: "#7B1FA2",
+    pending: "#FFA726",
+    knowledge: "#26A69A",
+    development: "#EF5350"
+};
+
+// Set up SVG
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("#viz")
+    .attr("width", width)
+    .attr("height", height);
+
+const g = svg.append("g");
+
+// Add zoom
+const zoom = d3.zoom()
+    .scaleExtent([0.2, 3])
+    .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+    });
+
+svg.call(zoom);
+
+// Create force simulation
+const simulation = d3.forceSimulation(fileData.nodes)
+    .force("link", d3.forceLink(fileData.links).id(d => d.id).strength(d => d.strength))
+    .force("charge", d3.forceManyBody().strength(-300))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collision", d3.forceCollide().radius(d => d.size + 5));
+
+// Create links
+const link = g.append("g")
+    .selectAll("line")
+    .data(fileData.links)
+    .enter().append("line")
+    .attr("class", "link")
+    .attr("stroke-width", d => Math.sqrt(d.strength * 5));
+
+// Create nodes
+const node = g.append("g")
+    .selectAll("circle")
+    .data(fileData.nodes)
+    .enter().append("circle")
+    .attr("class", "node")
+    .attr("r", d => d.size)
+    .attr("fill", d => colors[d.category] || "#999")
+    .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
+
+// Add labels
+const label = g.append("g")
+    .selectAll("text")
+    .data(fileData.nodes)
+    .enter().append("text")
+    .attr("class", "label")
+    .text(d => d.name)
+    .style("font-size", d => d.size > 20 ? "12px" : "10px");
+
+// Add tooltips
+node.append("title")
+    .text(d => `${d.name}\nFiles: ${d.files}\nCategory: ${d.category}`);
+
+// Update positions on tick
+simulation.on("tick", () => {
+    link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
+
+    node
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
+    
+    label
+        .attr("x", d => d.x)
+        .attr("y", d => d.y + 3);
+});
+
+// Drag functions
+function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+}
+
+function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+}
+
+// Search functionality
+document.getElementById("search").addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    
+    node.style("opacity", d => 
+        d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2
+    );
+    
+    label.style("opacity", d => 
+        d.name.toLowerCase().includes(searchTerm) ? 1 : 0.1
+    );
+});
+
+// Reset view
+function resetView() {
+    svg.transition().duration(750).call(
+        zoom.transform,
+        d3.zoomIdentity
+    );
+    document.getElementById("search").value = "";
+    node.style("opacity", 1);
+    label.style("opacity", 1);
+}
+</script>
+</body>
+</html>

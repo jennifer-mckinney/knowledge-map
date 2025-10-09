@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Organization Knowledge Network</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 280px;
+            z-index: 1000;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .dropdown-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .dropdown {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 8px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .reset-btn:hover {
+            background: #357abd;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        svg {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .node {
+            cursor: pointer;
+        }
+
+        .node circle {
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+
+        .node text {
+            font-size: 11px;
+            pointer-events: none;
+        }
+
+        .link {
+            fill: none;
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 1.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <input type="text" class="search-input" placeholder="Search files, projects, categories...">
+        <div class="dropdown-row">
+            <select class="dropdown">
+                <option>By Category</option>
+                <option>By Project</option>
+                <option>By Type</option>
+            </select>
+            <select class="dropdown">
+                <option>Organic</option>
+                <option>Circular</option>
+            </select>
+        </div>
+        <button class="reset-btn">Reset View</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-number">1081</div>
+        <div class="stat-label">Files</div>
+        <div class="stat-number">26</div>
+        <div class="stat-label">Projects</div>
+        <div class="stat-number">7</div>
+        <div class="stat-label">Categories</div>
+    </div>
+
+    <svg id="graph"></svg>
+
+    <script>
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#graph")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 4])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        // Color scale matching the video
+        const color = d3.scaleOrdinal()
+            .domain(["Professional", "Education", "Technical", "Research", "Creative", "General"])
+            .range(["#4CAF50", "#2196F3", "#FF5722", "#9C27B0", "#FFC107", "#607D8B"]);
+
+        const nodes = [
+            {id: "Career Development", group: "Professional", size: 30, files: 87},
+            {id: "Amazon Preparation", group: "Professional", size: 20, files: 22},
+            {id: "Oxford AI Programme", group: "Education", size: 25, files: 45},
+            {id: "Education Coursework", group: "Education", size: 35, files: 124},
+            {id: "AI Research", group: "Research", size: 40, files: 156},
+            {id: "Deepfake Research", group: "Research", size: 22, files: 32},
+            {id: "Technical Development", group: "Technical", size: 45, files: 189},
+            {id: "ClaudeOfficeSpace", group: "Technical", size: 18, files: 12},
+            {id: "_AUTOMATION", group: "Technical", size: 25, files: 45},
+            {id: "Design Assets", group: "Creative", size: 20, files: 28},
+            {id: "Reports Analysis", group: "General", size: 28, files: 78},
+            {id: "Administrative", group: "General", size: 24, files: 65},
+            {id: "_ORGANIZED", group: "General", size: 35, files: 253}
+        ];
+
+        const links = [
+            {source: "Career Development", target: "Amazon Preparation"},
+            {source: "Education Coursework", target: "Oxford AI Programme"},
+            {source: "AI Research", target: "Deepfake Research"},
+            {source: "Technical Development", target: "ClaudeOfficeSpace"},
+            {source: "Technical Development", target: "_AUTOMATION"},
+            {source: "_AUTOMATION", target: "ClaudeOfficeSpace"}
+        ];
+
+        const simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+            .force("charge", d3.forceManyBody().strength(-300))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => d.size + 10));
+
+        const link = g.append("g")
+            .selectAll("line")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link");
+
+        const node = g.append("g")
+            .selectAll("g")
+            .data(nodes)
+            .enter().append("g")
+            .attr("class", "node")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        node.append("circle")
+            .attr("r", d => d.size)
+            .attr("fill", d => color(d.group));
+
+        node.append("text")
+            .attr("dy", ".35em")
+            .attr("text-anchor", "middle")
+            .text(d => d.id);
+
+        node.append("title")
+            .text(d => `${d.id}: ${d.files} files`);
+
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("transform", d => `translate(${d.x},${d.y})`);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        // Search functionality
+        document.querySelector('.search-input').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            node.style("opacity", d => 
+                d.id.toLowerCase().includes(searchTerm) ? 1 : 0.2
+            );
+        });
+
+        // Reset button
+        document.querySelector('.reset-btn').addEventListener('click', () => {
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+        });
+    </script>
+</body>
+</html>

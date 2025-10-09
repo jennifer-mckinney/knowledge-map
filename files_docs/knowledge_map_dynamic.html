@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dynamic Knowledge Map</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: #fafafa;
+}
+.controls {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.stats {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: right;
+}
+button {
+    background: #4285F4;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 2px;
+}
+button:hover {
+    background: #357ae8;
+}
+.refresh-btn {
+    background: #0F9D58;
+}
+svg {
+    background: #fafafa;
+}
+.node {
+    stroke: #fff;
+    stroke-width: 2px;
+    cursor: pointer;
+}
+.link {
+    stroke: #999;
+    stroke-opacity: 0.4;
+}
+.label {
+    font-size: 10px;
+    pointer-events: none;
+}
+.status {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    display: none;
+}
+</style>
+</head>
+<body>
+<div class="controls">
+    <h3>Dynamic File Map</h3>
+    <button class="refresh-btn" onclick="refreshData()">🔄 Refresh Data</button>
+    <button onclick="resetView()">Reset View</button>
+    <br><br>
+    <input type="text" id="search" placeholder="Search..." style="width: 200px; padding: 5px;">
+    <br><br>
+    <label>
+        <input type="checkbox" id="autoRefresh" onchange="toggleAutoRefresh()">
+        Auto-refresh (5 min)
+    </label>
+</div>
+
+<div class="stats">
+    <div style="font-size: 24px; font-weight: bold;" id="totalFiles">-</div>
+    <div>Total Files</div>
+    <hr>
+    <div style="font-size: 14px;" id="lastUpdated">-</div>
+    <div>Last Updated</div>
+</div>
+
+<div class="status" id="status"></div>
+
+<svg id="viz"></svg>
+
+<script>
+// Global variables
+let simulation, node, link, label, g;
+let autoRefreshInterval = null;
+let currentData = null;
+
+// Color scheme
+const colors = {
+    location: "#4285F4",
+    system: "#DB4437",
+    professional: "#0F9D58",
+    education: "#AB47BC",
+    research: "#00ACC1",
+    technical: "#FF7043",
+    general: "#999999"
+};
+
+// Initialize visualization
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const svg = d3.select("#viz")
+    .attr("width", width)
+    .attr("height", height);
+
+g = svg.append("g");
+
+// Add zoom
+const zoom = d3.zoom()
+    .scaleExtent([0.2, 3])
+    .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+    });
+
+svg.call(zoom);
+
+// Load data from JSON file
+async function loadData() {
+    showStatus("Loading data...");
+    
+    try {
+        // Try to load from the same directory first
+        const response = await fetch('knowledge_map_data.json');
+        
+        if (!response.ok) {
+            // If not found, try to generate it
+            showStatus("Data file not found. Run knowledge_map_generator.py to create it.");
+            return null;
+        }
+        
+        const data = await response.json();
+        currentData = data;
+        
+        // Update stats
+        document.getElementById('totalFiles').textContent = data.total_files || '-';
+        document.getElementById('lastUpdated').textContent = 
+            data.generated ? new Date(data.generated).toLocaleTimeString() : '-';
+        
+        showStatus(`Loaded ${data.nodes.length} nodes, ${data.total_files} files`);
+        setTimeout(() => hideStatus(), 3000);
+        
+        return data;
+    } catch (error) {
+        showStatus(`Error loading data: ${error.message}`);
+        console.error(error);
+        return null;
+    }
+}
+
+// Create/update visualization
+function updateVisualization(data) {
+    if (!data) return;
+    
+    // Clear existing
+    g.selectAll("*").remove();
+    
+    // Create force simulation
+    simulation = d3.forceSimulation(data.nodes)
+        .force("link", d3.forceLink(data.links).id(d => d.id).strength(d => d.strength || 0.5))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(d => d.size + 5));
+    
+    // Create links
+    link = g.append("g")
+        .selectAll("line")
+        .data(data.links)
+        .enter().append("line")
+        .attr("class", "link")
+        .attr("stroke-width", d => Math.sqrt((d.strength || 0.5) * 5));
+    
+    // Create nodes
+    node = g.append("g")
+        .selectAll("circle")
+        .data(data.nodes)
+        .enter().append("circle")
+        .attr("class", "node")
+        .attr("r", d => d.size)
+        .attr("fill", d => colors[d.category] || "#999")
+        .call(d3.drag()
+            .on("start", dragstarted)
+            .on("drag", dragged)
+            .on("end", dragended));
+    
+    // Add labels
+    label = g.append("g")
+        .selectAll("text")
+        .data(data.nodes)
+        .enter().append("text")
+        .attr("class", "label")
+        .text(d => d.name)
+        .style("font-size", d => d.size > 20 ? "12px" : "10px");
+    
+    // Add tooltips
+    node.append("title")
+        .text(d => `${d.name}\nFiles: ${d.files}\nCategory: ${d.category}\nPath: ${d.path}`);
+    
+    // Update positions on tick
+    simulation.on("tick", () => {
+        link
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+        
+        node
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+        
+        label
+            .attr("x", d => d.x)
+            .attr("y", d => d.y + 3);
+    });
+}
+
+// Drag functions
+function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+}
+
+function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+}
+
+function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+}
+
+// Search functionality
+document.getElementById("search").addEventListener("input", (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    
+    if (node) {
+        node.style("opacity", d => 
+            d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2
+        );
+    }
+    
+    if (label) {
+        label.style("opacity", d => 
+            d.name.toLowerCase().includes(searchTerm) ? 1 : 0.1
+        );
+    }
+});
+
+// Reset view
+function resetView() {
+    svg.transition().duration(750).call(
+        zoom.transform,
+        d3.zoomIdentity
+    );
+    document.getElementById("search").value = "";
+    if (node) node.style("opacity", 1);
+    if (label) label.style("opacity", 1);
+}
+
+// Refresh data
+async function refreshData() {
+    showStatus("Refreshing...");
+    const data = await loadData();
+    if (data) {
+        updateVisualization(data);
+    }
+}
+
+// Auto-refresh toggle
+function toggleAutoRefresh() {
+    const checkbox = document.getElementById('autoRefresh');
+    
+    if (checkbox.checked) {
+        // Refresh every 5 minutes
+        autoRefreshInterval = setInterval(refreshData, 5 * 60 * 1000);
+        showStatus("Auto-refresh enabled (5 minutes)");
+    } else {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+        }
+        showStatus("Auto-refresh disabled");
+    }
+    
+    setTimeout(() => hideStatus(), 2000);
+}
+
+// Status messages
+function showStatus(message) {
+    const status = document.getElementById('status');
+    status.textContent = message;
+    status.style.display = 'block';
+}
+
+function hideStatus() {
+    document.getElementById('status').style.display = 'none';
+}
+
+// Initial load
+window.addEventListener('load', async () => {
+    const data = await loadData();
+    if (data) {
+        updateVisualization(data);
+    }
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    const newWidth = window.innerWidth;
+    const newHeight = window.innerHeight;
+    
+    svg.attr("width", newWidth).attr("height", newHeight);
+    
+    if (simulation) {
+        simulation.force("center", d3.forceCenter(newWidth / 2, newHeight / 2));
+        simulation.alpha(0.3).restart();
+    }
+});
+</script>
+</body>
+</html>

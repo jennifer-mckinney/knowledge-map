@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Organization Knowledge Network</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background: #fafafa;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e8ed;
+            min-width: 300px;
+        }
+
+        .search-container {
+            margin-bottom: 12px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            font-size: 14px;
+            outline: none;
+            background: white;
+            box-sizing: border-box;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .dropdown {
+            flex: 1;
+            font-size: 12px;
+            padding: 6px 8px;
+            border: 1px solid #d1d9e0;
+            border-radius: 4px;
+            background: white;
+            outline: none;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e1e8ed;
+            text-align: right;
+            font-size: 13px;
+            color: #657786;
+            min-width: 140px;
+        }
+
+        .stat-number {
+            font-size: 18px;
+            font-weight: 600;
+            color: #14171a;
+            display: block;
+        }
+
+        svg {
+            background: #fafafa;
+            cursor: grab;
+        }
+
+        svg:active {
+            cursor: grabbing;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+            stroke-width: 1.5;
+        }
+
+        .node {
+            stroke-width: 1.5;
+            cursor: pointer;
+        }
+
+        .label {
+            font-size: 10px;
+            font-weight: 500;
+            fill: #14171a;
+            text-anchor: middle;
+            pointer-events: none;
+            opacity: 0.9;
+        }
+
+        .reset-btn {
+            background: #4a90a4;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 8px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search files, projects, categories...">
+            </div>
+            <div class="control-row">
+                <select class="dropdown" id="clusterBy">
+                    <option value="category">By Category</option>
+                    <option value="project">By Project</option>
+                    <option value="type">By Type</option>
+                </select>
+                <select class="dropdown" id="layoutMode">
+                    <option value="organic">Organic</option>
+                    <option value="circular">Circular</option>
+                </select>
+            </div>
+            <button class="reset-btn" id="resetView">Reset View</button>
+        </div>
+
+        <div class="stats">
+            <span class="stat-number" id="totalFiles">1081</span>
+            <span>Files</span><br><br>
+            <span class="stat-number" id="totalProjects">26</span>
+            <span>Projects</span><br><br>
+            <span class="stat-number" id="totalCategories">7</span>
+            <span>Categories</span>
+        </div>
+
+        <svg id="visualization"></svg>
+    </div>
+
+    <script>
+        const fileData = {
+            nodes: [
+                {id: "career", name: "Career Development", category: "Professional", files: 87, size: 22},
+                {id: "amazon", name: "Amazon Preparation", category: "Professional", files: 22, size: 16},
+                {id: "oxford", name: "Oxford AI Programme", category: "Education", files: 45, size: 18},
+                {id: "education", name: "Education Coursework", category: "Education", files: 124, size: 24},
+                {id: "research", name: "AI Research", category: "Research", files: 156, size: 26},
+                {id: "deepfake", name: "Deepfake Research", category: "Research", files: 32, size: 16},
+                {id: "technical", name: "Technical Development", category: "Technical", files: 189, size: 28},
+                {id: "workspace", name: "ClaudeOfficeSpace", category: "Technical", files: 12, size: 14},
+                {id: "automation", name: "_AUTOMATION", category: "Technical", files: 45, size: 18},
+                {id: "design", name: "Design Assets", category: "Creative", files: 28, size: 16},
+                {id: "reports", name: "Reports Analysis", category: "General", files: 78, size: 20},
+                {id: "admin", name: "Administrative", category: "General", files: 65, size: 18},
+                {id: "organized", name: "_ORGANIZED", category: "General", files: 253, size: 24}
+            ],
+            links: [
+                {source: "career", target: "amazon", strength: 0.8},
+                {source: "education", target: "oxford", strength: 0.8},
+                {source: "research", target: "deepfake", strength: 0.8},
+                {source: "technical", target: "workspace", strength: 0.8},
+                {source: "technical", target: "automation", strength: 0.8},
+                {source: "automation", target: "workspace", strength: 0.6}
+            ]
+        };
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#visualization")
+            .attr("width", width)
+            .attr("height", height);
+
+        const g = svg.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.2, 3])
+            .on("zoom", function(event) {
+                g.attr("transform", event.transform);
+            });
+
+        svg.call(zoom);
+
+        const color = d3.scaleOrdinal()
+            .domain(["Professional", "Education", "Research", "Technical", "Creative", "General"])
+            .range(["#4ecdc4", "#45b7d1", "#96ceb4", "#ffeaa7", "#fab1a0", "#a29bfe"]);
+
+        const simulation = d3.forceSimulation(fileData.nodes)
+            .force("link", d3.forceLink(fileData.links).id(d => d.id).strength(0.3))
+            .force("charge", d3.forceManyBody().strength(-150))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => d.size + 2));
+
+        const link = g.append("g")
+            .selectAll(".link")
+            .data(fileData.links)
+            .enter().append("line")
+            .attr("class", "link");
+
+        const node = g.append("g")
+            .selectAll(".node")
+            .data(fileData.nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", d => d.size)
+            .attr("fill", d => color(d.category))
+            .attr("stroke", "#fff")
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        const label = g.append("g")
+            .selectAll(".label")
+            .data(fileData.nodes)
+            .enter().append("text")
+            .attr("class", "label")
+            .text(d => d.name);
+
+        node.append("title")
+            .text(d => `${d.name}: ${d.files} files`);
+
+        simulation.on("tick", () => {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
+
+            node
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+
+            label
+                .attr("x", d => d.x)
+                .attr("y", d => d.y + 4);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        document.getElementById("searchInput").addEventListener("input", function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            node.style("opacity", d => 
+                d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2
+            );
+            label.style("opacity", d => 
+                d.name.toLowerCase().includes(searchTerm) ? 1 : 0.1
+            );
+        });
+
+        document.getElementById("resetView").addEventListener("click", function() {
+            svg.transition().duration(750).call(
+                zoom.transform,
+                d3.zoomIdentity
+            );
+        });
+    </script>
+</body>
+</html>
