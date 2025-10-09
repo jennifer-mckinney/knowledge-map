@@ -76,6 +76,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Removed node labels** - Text labels removed from circles for cleaner visual (names shown in tooltips)
 - **CSS transition override** - Disabled transitions on graph elements (`.node`, `.link`) to prevent interference with D3 animation
 
+### Design Documentation Updates
+- **Added Notion integration to Phase 2** - Official API integration for workspaces, pages, databases
+  - Extract structured data (properties, tags, relations)
+  - Map internal page links to relationship edges
+  - Sync Notion metadata → dynamic graph fields
+  - Critical for user's active documentation workflow
+
 ### Design Documentation
 - Created 14 comprehensive design documents covering:
   - Product requirements and specifications

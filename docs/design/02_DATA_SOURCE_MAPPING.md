@@ -49,6 +49,64 @@
 
 ---
 
+## Phase 2 Sources (After Phase 1 Complete)
+
+| Source | API/Method | Update Freq | Priority | Notes |
+|--------|------------|-------------|----------|-------|
+| **Notion** | Official Notion API | Real-time/Daily | **HIGH** | Workspaces, pages, databases, properties |
+| Browser History | SQLite/API | Daily | MEDIUM | Research trails, visited sites |
+| Slack/Discord | API export | Weekly | LOW | Team communications |
+| GitHub Repos | Git metadata | Weekly | MEDIUM | Project documentation |
+
+### Notion Integration Details
+
+**Why Notion is Critical:**
+- User maintains active documentation in Notion (phone + laptop)
+- Rich structured data (pages, databases, properties)
+- Existing metadata (tags, relations, dates)
+- Natural knowledge graph structure (internal page links)
+- Official API with robust access
+
+**What to Extract:**
+```javascript
+{
+  type: "notion_page",
+  notion_id: "page-uuid",
+  title: "Page title",
+  database: "parent_database_name",
+  properties: {
+    // User-defined properties from database
+    tags: ["tag1", "tag2"],
+    status: "In Progress",
+    priority: "High",
+    // ... any custom properties
+  },
+  content: "markdown_content",
+  internal_links: ["page-uuid-1", "page-uuid-2"],
+  created: "2025-01-09",
+  last_edited: "2025-01-10",
+  url: "notion.so/...",
+  attachments: []
+}
+```
+
+**Notion API Integration:**
+- Authenticate via OAuth or Integration Token
+- Pull workspace hierarchy (databases → pages)
+- Extract page content as markdown
+- Map database properties → dynamic metadata
+- Track internal links → relationship edges
+- Sync on schedule (real-time webhook or daily poll)
+
+**Mapping to Knowledge Graph:**
+- Notion Databases → `type: "topic"` nodes
+- Notion Pages → `type: "document"` or `type: "project"` nodes
+- Database properties → custom metadata fields
+- Internal page links → `type: "semantic"` relationships
+- Mentioned pages → `type: "related"` relationships
+
+---
+
 ## Extraction Methods
 
 ### Files
