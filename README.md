@@ -1,68 +1,75 @@
-# knowledge-map
+# Personal Knowledge Graph System
 
-A visual file system explorer and knowledge mapping tool.
+Transform scattered digital artifacts into an intelligent, connected knowledge graph.
 
-## 📚 Overview
-
-**knowledge-map** helps you visualize, organize, and navigate your file system as a knowledge map. Use it to gain insights into directory structure, relationships, and metadata in a visually engaging way.
-
-## ✨ Features
-
-- Interactive file system explorer
-- Visual knowledge map generation from directories and files
-- Support for custom metadata annotations
-- Search and filter files or folders
-- Export knowledge maps as images or data
-
-## 🚀 Getting Started
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/jennifer-mckinney/knowledge-map.git
-   cd knowledge-map
-   ```
-
-2. **Install dependencies:**
-   ```bash
-   # Example for Node.js projects
-   npm install
-   ```
-
-3. **Run the app:**
-   ```bash
-   # Example for Node.js projects
-   npm start
-   ```
-
-> Adapt the install/run instructions above to your tech stack as needed!
-
-## 🛠 Usage
-
-- Open the app and select a root directory.
-- Explore the generated knowledge map.
-- Click nodes to view metadata or drill down.
-- Use search/filter to find files or folders.
-
-## 📦 Project Structure
-
-```
-/src
-  /components
-  /utils
-  App.js
-README.md
-package.json
-...
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request.
-
-## 📄 License
-
-This project is licensed under the MIT License.
+[![Status](https://img.shields.io/badge/status-in%20development-yellow)]() [![Version](https://img.shields.io/badge/version-2.0-blue)]() [![License](https://img.shields.io/badge/license-MIT-green)]()
 
 ---
 
-*Created by [Jennifer McKinney](https://github.com/jennifer-mckinney)*
+## What This Does
+
+Automatically discovers, organizes, tags, and connects all your digital artifacts (files, notes, screenshots, calendar events, emails) to reveal patterns, identify knowledge gaps, and surface unrealized opportunities.
+
+**Stop manually organizing. Start discovering insights.**
+
+---
+
+## Key Features
+
+- **Intelligent Discovery** - Auto-scan iCloud, OneDrive, local storage, Apple Notes
+- **Screenshot OCR** - Find any screenshot by content, not filename
+- **Dynamic AI Tagging** - Claude API-powered, learns from corrections
+- **Automated Organization** - Daily cleanup, change logs, tidy desktop
+- **Knowledge Graph** - Interactive D3.js visualization with weighted relationships
+- **Analytics & Insights** - Pattern detection, gap analysis, business opportunities
+- **Email Integration** - Link emails to files, calendar, projects
+- **Mobile App** - iOS companion for on-the-go access
+- **Advanced Time Tracking** - Duration spent in documents
+
+---
+
+## Installation
+
+```bash
+git clone https://github.com/jennifer-mckinney/knowledge-map.git
+cd knowledge-map
+pip install -r requirements.txt
+export CLAUDE_API_KEY="your-key"
+python src/scan_files.py
+```
+
+---
+
+## Documentation
+
+Full design docs in `/docs/design/`:
+- [01_PRODUCT_REQUIREMENTS.md](docs/design/01_PRODUCT_REQUIREMENTS.md) - Complete PRD
+- More docs coming...
+
+---
+
+## Timeline
+
+**2-Week Build:**
+- **Week 1:** Core system (files, screenshots, tagging, graph, UI, basic analytics)
+- **Week 2:** Advanced features (photos, email, mobile app, advanced analytics)
+
+---
+
+## Privacy
+
+- Local-first processing
+- Optional Claude API (can use local NLP)
+- No telemetry, your data stays yours
+
+---
+
+## License
+
+MIT License
+
+---
+
+**Jennifer McKinney** | [GitHub](https://github.com/jennifer-mckinney)
+
+*Status: Active Development | Last Updated: 2025-10-09*

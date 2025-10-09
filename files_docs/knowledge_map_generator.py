@@ -26,9 +26,18 @@ def scan_file_system():
     for loc_id, loc_path, loc_type in locations:
         if not loc_path.exists():
             continue
-            
-        # Count total files in location
-        total_files = sum(1 for f in loc_path.rglob('*') if f.is_file() and not f.name.startswith('.'))
+
+        # BUG FIX #5: Add error handling for permission denied and other scanning errors
+        # Without this, the script crashes when encountering protected directories
+        try:
+            # Count total files in location
+            total_files = sum(1 for f in loc_path.rglob('*') if f.is_file() and not f.name.startswith('.'))
+        except PermissionError:
+            print(f"⚠️  Permission denied accessing {loc_path}")
+            total_files = 0
+        except Exception as e:
+            print(f"⚠️  Error scanning {loc_path}: {e}")
+            total_files = 0
         
         # Add location node
         node_map[str(loc_path)] = loc_id
@@ -44,7 +53,15 @@ def scan_file_system():
         # Scan subdirectories
         for subdir in loc_path.iterdir():
             if subdir.is_dir() and not subdir.name.startswith('.'):
-                file_count = sum(1 for f in subdir.rglob('*') if f.is_file() and not f.name.startswith('.'))
+                # BUG FIX #5: Error handling for subdirectory scanning
+                try:
+                    file_count = sum(1 for f in subdir.rglob('*') if f.is_file() and not f.name.startswith('.'))
+                except PermissionError:
+                    print(f"⚠️  Permission denied accessing {subdir}")
+                    continue  # Skip this subdirectory
+                except Exception as e:
+                    print(f"⚠️  Error scanning {subdir}: {e}")
+                    continue  # Skip this subdirectory
                 
                 if file_count > 0:
                     sub_id = f"node_{node_id}"
@@ -85,7 +102,15 @@ def scan_file_system():
                     if subdir.name in ["_AUTOMATION", "_ORGANIZED", "Projects_By_Topic"]:
                         for subsubdir in subdir.iterdir():
                             if subsubdir.is_dir() and not subsubdir.name.startswith('.'):
-                                subfile_count = sum(1 for f in subsubdir.rglob('*') if f.is_file())
+                                # BUG FIX #5: Error handling for deep subdirectory scanning
+                                try:
+                                    subfile_count = sum(1 for f in subsubdir.rglob('*') if f.is_file())
+                                except PermissionError:
+                                    print(f"⚠️  Permission denied accessing {subsubdir}")
+                                    continue  # Skip this deep subdirectory
+                                except Exception as e:
+                                    print(f"⚠️  Error scanning {subsubdir}: {e}")
+                                    continue  # Skip this deep subdirectory
                                 
                                 if subfile_count > 0:
                                     subsub_id = f"node_{node_id}"
@@ -127,9 +152,23 @@ def scan_file_system():
 
 def save_data(data, output_path):
     """Save data to JSON file"""
-    with open(output_path, 'w') as f:
-        json.dump(data, f, indent=2)
-    print(f"✓ Saved {len(data['nodes'])} nodes, {data['total_files']} total files")
+    # BUG FIX #7: Add error handling for file write failures
+    # This prevents silent failures when disk is full or permissions are wrong
+    try:
+        with open(output_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        print(f"✓ Saved {len(data['nodes'])} nodes, {data['total_files']} total files")
+    except PermissionError:
+        print(f"❌ Permission denied writing to {output_path}")
+        print(f"   Check file permissions and try again")
+        raise  # Re-raise to let caller know the save failed
+    except OSError as e:
+        print(f"❌ Disk error writing to {output_path}: {e}")
+        print(f"   Check available disk space and file system health")
+        raise  # Re-raise to let caller know the save failed
+    except Exception as e:
+        print(f"❌ Unexpected error saving data: {e}")
+        raise  # Re-raise to let caller know the save failed
 
 if __name__ == "__main__":
     # Generate data
