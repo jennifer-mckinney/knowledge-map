@@ -16,7 +16,7 @@ This system automatically discovers, organizes, tags, and connects all your digi
 
 ## ✨ Planned Features
 
-### Phase 1 - Foundation (Weeks 1-2)
+### Phase 1 - Foundation (Week 1)
 - ✅ **Interactive Knowledge Graph** - D3.js force-directed visualization with zoom, pan, drag
 - ✅ **Multiple Layout Modes** - Organic, Circular, Grid, Hierarchical views
 - ✅ **Dynamic Filtering** - Click clusters to filter, hover for details
@@ -27,7 +27,7 @@ This system automatically discovers, organizes, tags, and connects all your digi
 - 🚧 **Automated Organization** - Daily cleanup, change logs, desktop tidying
 - 🚧 **SQLite + FTS5 Storage** - Fast full-text search with graph relationships
 
-### Phase 2 - Integration & Intelligence (Weeks 3-4)
+### Phase 2 - Integration & Intelligence (Week 2)
 - 📋 **Notion Integration** - Sync workspaces, pages, databases with full metadata
 - 📋 **Email Integration** - Link emails to files, calendar, projects
 - 📋 **Analytics Dashboard** - Pattern detection, gap analysis, time-vs-output metrics
@@ -75,9 +75,9 @@ Phase 3: Advanced        ░░░░░░░░░░░░░░░░   0%
 | **🎯 M1: See Your Knowledge** | Visualize 1000+ scattered files as connected insights | ✅ **Done** | Stop forgetting what you know |
 | **🔍 M2: Find Anything Instantly** | OCR + full-text search across all files | 📋 Next | Save 2+ hours/week searching |
 | **🤖 M3: Automatic Organization** | Files tagged & sorted while you sleep | 📋 Week 2 | Never manually organize again |
-| **💡 M4: Discover Opportunities** | AI identifies skill gaps & career paths | 📋 Week 3 | Turn scattered work into strategy |
-| **📊 M5: Quantify Your Expertise** | Data-driven portfolio generation | 📋 Week 4 | Prove your value with metrics |
-| **🔗 M6: Connect Everything** | Link Notion + Email + Calendar + Files | 📋 Phase 2 | One source of truth |
+| **💡 M4: Discover Opportunities** | AI identifies skill gaps & career paths | 📋 Week 2 | Turn scattered work into strategy |
+| **📊 M5: Quantify Your Expertise** | Data-driven portfolio generation | 📋 Week 2 | Prove your value with metrics |
+| **🔗 M6: Connect Everything** | Link Notion + Email + Calendar + Files | 📋 Phase 3 | One source of truth |
 | **📱 M7: Access Anywhere** | Mobile app for insights on-the-go | 📋 Future | Your knowledge in your pocket |
 
 ### Frontend Sections Progress
@@ -202,7 +202,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed history of all changes, features, 
 We prioritize getting data organized and accessible before building complex UI features. Clean data structure → powerful insights.
 
 ### Lego Blocks Development
-Build one section at a time, test thoroughly, then move to the next. Each component must work perfectly before adding complexity.
+Build one section at a time, test thoroughly, then move to the next. Each component must meet requirements before adding complexity.
 
 ### Knowledge Management Standards
 Following industry standards (Notion, Obsidian, Roam) for taxonomy:
@@ -297,14 +297,3 @@ MIT License - see LICENSE file for details
 **Jennifer McKinney**
 - GitHub: [@jennifer-mckinney](https://github.com/jennifer-mckinney)
 - Project: [knowledge-map](https://github.com/jennifer-mckinney/knowledge-map)
-
----
-
-## 🔄 Project Timeline
-
-**Weeks 1-2:** Core system foundation (data ingestion, tagging, graph, basic UI)
-**Weeks 3-4:** Integration & intelligence (Notion, email, analytics, insights)
-**Future:** Advanced features (mobile app, browser history, hierarchical navigation)
-
-**Last Updated:** 2025-01-09
-**Status:** Active Development - Frontend Prototype Phase
